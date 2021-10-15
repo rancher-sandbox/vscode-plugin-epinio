@@ -1,0 +1,250 @@
+{
+  "name": "vscode-plugin-epinio",
+  "displayName": "Epinio",
+  "description": "VS Code plugin for epinio. epinio is an opinionated platform that runs on Kubernetes, that takes you from App to URL in one step.",
+  "version": "0.0.1",
+  "icon": "resources/epinio.png",
+  "publisher": "SUSELLC",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "epinio",
+    "kubernetes",
+    "deploy"
+  ],
+  "bugs": {
+    "url": "https://github.com/epinio/epinio/issues"
+  },
+  "homepage": "https://epinio.io/",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "activationEvents": [
+    "onCommand:epinio.application.explorer.refresh",
+    "onCommand:epinio.application.push",
+    "onCommand:epinio.application.open",
+    "onCommand:epinio.application.env",
+    "onCommand:epinio.application.scale",
+    "onCommand:epinio.application.logs",
+    "onCommand:epinio.application.delete",
+    "onCommand:epinio.service.bind",
+    "onCommand:epinio.service.unbind",
+    "onCommand:epinio.service.delete",
+    "onView:epinio.application",
+    "onDebugInitialConfigurations"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "views": {
+      "epinioView": [
+        {
+          "id": "epinio.application",
+          "name": "Apps",
+          "when": "config.epinio.application.showExplorer == true"
+        },
+        {
+          "id": "epinio.service",
+          "name": "Services",
+          "when": "config.epinio.service.showExplorer == true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "epinioView",
+          "title": "Epinio",
+          "icon": "images/epinio.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "epinio.application.explorer.refresh",
+        "title": "Refresh explorer",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        },
+        "description": "Refresh Epinio explorer",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.push",
+        "title": "Push",
+        "description": "Epinio application push",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.open",
+        "title": "Open",
+        "description": "Epinio application open in browser",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.env",
+        "title": "Env",
+        "description": "Epinio application set env variable",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.scale",
+        "title": "Scale",
+        "description": "Scale Epinio application",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.logs",
+        "title": "Logs",
+        "description": "Epinio application open logs",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.delete",
+        "title": "Delete",
+        "description": "Epinio application delete",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.service.up",
+        "title": "View/Edit Environment variables",
+        "description": "Epinio service up",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.service.down",
+        "title": "Bind Services",
+        "description": "Epinio service down",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.service.delete",
+        "title": "Delete",
+        "description": "Epinio service delete",
+        "category": "Epinio"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "epinio.application.explorer.refresh",
+          "when": "view == epinio.application",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "epinio.application.push",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@0"
+        },
+        {
+          "command": "epinio.application.open",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@1"
+        },
+        {
+          "command": "epinio.application.env",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@2"
+        },
+        {
+          "command": "epinio.application.scale",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@3"
+        },
+        {
+          "command": "epinio.application.logs",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@4"
+        },
+        {
+          "command": "epinio.application.delete",
+          "when": "view == epinio.application && viewItem == epinio:application",
+          "group": "epinio:application@5"
+        },
+        {
+          "command": "epinio.service.up",
+          "when": "view == epinio.service && viewItem == epinio:service",
+          "group": "epinio:service@1"
+        },
+        {
+          "command": "epinio.service.down",
+          "when": "view == epinio.service && viewItem == epinio:service",
+          "group": "epinio:service@2"
+        },
+        {
+          "command": "epinio.service.delete",
+          "when": "view == epinio.service && viewItem == epinio:service",
+          "group": "epinio:service@3"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Epinio configuration",
+      "properties": {
+        "epinio.applicationNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Override Epinio application name for each workspace root."
+        },
+        "epinio.autoRefreshInterval": {
+          "type": "integer",
+          "default": 90000,
+          "description": "Epinio auto refresh interval."
+        },
+        "epinio.application.showExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Epinio Applications explorer."
+        },
+        "epinio.service.showExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Epinio Services explorer."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p -w . --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.4",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.60.0",
+    "@typescript-eslint/eslint-plugin": "^4.31.1",
+    "@typescript-eslint/parser": "^4.31.1",
+    "@vscode/test-electron": "^1.6.2",
+    "eslint": "^7.32.0",
+    "glob": "^7.1.7",
+    "mocha": "^9.1.1",
+    "ts-loader": "^9.2.5",
+    "typescript": "^4.4.3",
+    "webpack": "^5.52.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "applicationinsights": "^2.1.8",
+    "yaml-config-loader": "^2.1.0"
+  }
+}
