@@ -2,7 +2,7 @@
   "name": "vscode-plugin-epinio",
   "displayName": "Epinio",
   "description": "VS Code plugin for epinio. epinio is an opinionated platform that runs on Kubernetes, that takes you from App to URL in one step.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "icon": "resources/epinio.png",
   "publisher": "SUSELLC",
   "license": "Apache-2.0",
