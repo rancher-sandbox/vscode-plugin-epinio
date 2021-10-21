@@ -13,7 +13,7 @@ export class AutoRefreshTreeDataProvider<T> {
     private debounceTimer: NodeJS.Timer;
 
     constructor(protected context: ExtensionContext) {
-        this.autoRefreshEnabled = true;
+        this.autoRefreshEnabled = false; // turned off auto refresh for the time being
     }
 
     protected _onDidChangeAutoRefresh = new EventEmitter<void>();
@@ -64,58 +64,68 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
             outputChannel: vscode.OutputChannel
         ) {
             super(context);
-            let applications:any[] = [];
-            if (vscode.workspace && vscode.workspace.workspaceFolders) {
-                applications = vscode.workspace.workspaceFolders.map((folder) => {
-                    // application name from mapping or use workspace dir name
-                    let name = applicationNames[folder.index] || folder.name.replace(/[^-_a-z0-9]/gi, '');
-                    let epinioExecutor = new EpinioExecutor(name, files, shell, folder.uri.fsPath, outputChannel);
-                    return new Application(name, epinioExecutor);
-                });
-            }
-            this._root = new ApplicationsNode(this.context, applications);
+            this._root = new ApplicationsNode(this.context, this.getApplicationNodes()); 
             this._outputChannel = outputChannel;
         }
 
-        protected getRefreshCallable(node: ExplorerNode) {
+        protected getRefreshCallable(node?: ExplorerNode, message?: string) {
             let that = this;
             async function refresh() {
                 await that.refresh(node);
+                message ? vscode.window.showInformationMessage(message) : null;
             }
             return refresh;
         }
 
         async getChildren(node?:ExplorerNode): Promise<ExplorerNode[]> {
-            if (this._loading !== undefined) {
-                await this._loading;
-                this._loading = undefined;
+            if (node === undefined) {
+                this._root = new ApplicationsNode(this.context, this.getApplicationNodes());      
+                node = this._root;
             }
-        
-            if (node === undefined) node = this._root;
+                
+            return await node?.getChildren() || [];
+        }
 
+        private getApplicationNodes() : Application[] {
             try {
-                return await node?.getChildren() || [];
+                const epinioExecutor = new EpinioExecutor('', __dirname, this._outputChannel);
+                const epinioAppListCmdOutput = epinioExecutor.getAppList();
+
+                return epinioAppListCmdOutput && epinioAppListCmdOutput.length > 0 
+                                     ? epinioAppListCmdOutput.map(app => {
+                                            return new Application(app.name, epinioExecutor);
+                                       })
+                                     : [];
+
             } catch (err:any) {
                 window.showErrorMessage("Epinio Error: " + err.message);
-                return await node?.handleError(err) || [];
+                return  [];
             }
         }
-    
+     
         async getTreeItem(node: ExplorerNode): Promise<TreeItem> {
             return node.getTreeItem();
         }
 
-        public async pushApplication(node: ApplicationNode): Promise<string> {
-            const ret = await node.application.push();
-            this.refresh();
-            return ret;
+        public async pushApplication(node: ApplicationNode, appSourcePath: string): Promise<ChildProcess> {
+            const child_process =  node.application.push(appSourcePath);
+            child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} pushed successfully.`));
+            return child_process;
+        }
+
+        public async pushApplicationFromSource(appName:string, appSourcePath: string): Promise<ChildProcess> {
+            const epinioExecutor = new EpinioExecutor(appName, __dirname, this._outputChannel);
+
+            const child_process =  epinioExecutor.push(appName, appSourcePath);
+            child_process.on('close', this.getRefreshCallable(this._root, `Application ${appName} pushed successfully.`));
+            return child_process;
         }
 
         public async openApplication(node: ApplicationNode): Promise<void> {
             return node.application.open();
         }
 
-        public async applicationEnv(node: ApplicationNode): Promise<void> {
+        public async setApplicationEnv(node: ApplicationNode): Promise<void> {
             return node.application.setEnv();
         }
 
@@ -127,10 +137,10 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
             return await node.application.getApplicationLogs();
         }
     
-        public async deleteApplication(node: ApplicationNode): Promise<string> {
-            const ret  = node.application.delete();
-            this.refresh();
-            return ret;
+        public async deleteApplication(node: ApplicationNode): Promise<ChildProcess> {
+            const child_process =  node.application.delete();
+            child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} deleted successfully.`));
+            return child_process;
         }
     
         public async bindService(node: ServiceNode): Promise<ChildProcess> {
@@ -145,11 +155,10 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
             return child_process;
         }
     
-        public async deleteService(node: ServiceNode): Promise<string> {
-/*             let child_process = node.service.stop();
+        public async deleteService(node: ServiceNode): Promise<ChildProcess> {
+            let child_process = node.service.delete();
             child_process.on('close', this.getRefreshCallable(node));
-            return child_process; */
-            return await node.service.delete();
+            return child_process;
         }
     
     }

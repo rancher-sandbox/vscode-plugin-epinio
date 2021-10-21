@@ -1,4 +1,5 @@
 'use strict';
+import { ChildProcess } from "child_process";
 import { Service } from "../services/models";
 import { EpinioExecutor } from "../executors/epinioExecutor";
 import { parseTableLines, isApplicationHealthy } from "../utils/epinioOutputParser";
@@ -20,6 +21,10 @@ export class Application {
                 : false;
     }
 
+    public getApplicationNamespace(): string {
+        return this.epinioExecutor.getApplicationNamespace(this.name);
+    }
+
     public getServices(force: boolean = false): Service[] {
         if (this._services === undefined || force) {
             this.refreshServices();
@@ -39,8 +44,8 @@ export class Application {
         return objArray.map(item => new Service(application, item?.name.trim(), executor));
     }
 
-    public push(): string {
-        return this.epinioExecutor.push(this.name);
+    public push(appSourcePath: string): ChildProcess {
+        return this.epinioExecutor.push(this.name, appSourcePath);
     }
 
     public open(): void {
@@ -59,7 +64,7 @@ export class Application {
         return this.epinioExecutor.getApplicationLogs(this.name);
     }
 
-    public delete(): string {
+    public delete(): ChildProcess {
         return this.epinioExecutor.deleteApplication(this.name);
     }
 

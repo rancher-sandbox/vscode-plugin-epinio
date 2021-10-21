@@ -14,6 +14,6 @@ You can also use `Rancher Desktop` (https://rancherdesktop.io/) to quickly spin 
 
 ## How to use this extension
 
-- Open a folder where your application source code resides.
-- Switch to the `Epinio` menu in the left hand side activity bar.
+- Switch to the `Epinio` menu in the left hand side activity bar to view the applications already pushed via CLI.
+- Or Push an application from source using the `+` button in the `apps` tree view toolbar.
 - Right click on your application name to `Push`, `Open`, set `Env`, view `logs`, `Delete` etc.

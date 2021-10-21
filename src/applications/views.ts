@@ -1,4 +1,4 @@
-import { TreeItem, TreeItemCollapsibleState, Uri, ExtensionContext, window } from 'vscode';
+import { TreeItem, TreeItemCollapsibleState, ExtensionContext, window } from 'vscode';
 import { ResourceType } from "../enums";
 import { Application } from "./models";
 import { ServiceNode } from "../services/views";
@@ -28,18 +28,17 @@ export class ApplicationNode extends EpinioNode {
     getTreeItem(): TreeItem {
         const item = new TreeItem(this.application.name, TreeItemCollapsibleState.Expanded);
         item.contextValue = ResourceType.Application;
-        
+        item.collapsibleState = TreeItemCollapsibleState.None;
+        item.description = `[ ${this.application.getApplicationNamespace()} ]`;
         const iconPath =  this.application.isApplicationPushedAndHealthy() 
                             ? this.context.asAbsolutePath('resources/app-pushed-healthy.png')
                             : this.context.asAbsolutePath('resources/app-not-pushed.png');
-        
         item.iconPath = {
             dark: iconPath,
             light: iconPath
         };
         return item;
     }
-
 }
 
 export class ApplicationsNode extends EpinioNode {
@@ -60,7 +59,7 @@ export class ApplicationsNode extends EpinioNode {
     }
 
     getTreeItem(): TreeItem {
-        const item = new TreeItem(`Applications`, TreeItemCollapsibleState.Expanded);
+        const item = new TreeItem(`Applications`, TreeItemCollapsibleState.None);
         item.contextValue = ResourceType.Applications;
         return item;
     }

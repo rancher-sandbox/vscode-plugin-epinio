@@ -55,3 +55,10 @@ export function isApplicationHealthy(application:any): boolean {
         }
     }
 }
+
+export function getNamespace(appInfo: any[]): string {
+    return appInfo.find(line => line.includes('Namespace'))
+           .split(':')
+           .pop()
+           .trim();
+}

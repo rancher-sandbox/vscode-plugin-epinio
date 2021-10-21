@@ -1,19 +1,14 @@
 import { ChildProcess } from "child_process";
 import { CommandExecutor } from "./commandExecutor";
 import { EpinioCommandNotFound, EpinioExecutorError } from "./exceptions";
-import { parseTableLines } from "../utils/epinioOutputParser";
+import { parseTableLines, getNamespace } from "../utils/epinioOutputParser";
 import * as vscode from 'vscode';
 
 export class EpinioExecutor extends CommandExecutor {
-
-    private _files: string[];
-    private _shell: string;
     private _outputChannel: vscode.OutputChannel;
 
-    constructor(name: string, files: string[], shell: string = "/bin/sh", cwd: string = '', outputChannel:vscode.OutputChannel) {
-        super(cwd, {COMPOSE_PROJECT_NAME: name})
-        this._files = files;
-        this._shell = shell;
+    constructor(name: string, cwd: string = '', outputChannel:vscode.OutputChannel) {
+        super(cwd, {EPINIO_APPLICATION_NAME: name});
         this._outputChannel = outputChannel;
     }
 
@@ -35,35 +30,32 @@ export class EpinioExecutor extends CommandExecutor {
 
     public getAppUrl(appName:string): string {
         const appInfoCommand = `app show ${appName}`;
-        const appInfo = this.executeSync(appInfoCommand).toString()
-                                                        .split(/[\r\n]+/g).filter((item) => item);
+        const appInfo = this.executeSync(appInfoCommand)
+                            .toString()
+                            .split(/[\r\n]+/g).filter((item) => item);
         const appInfoObjArray = parseTableLines(appInfo);
         const appRoute = appInfoObjArray.find(item => item.key === 'Routes')?.value.trim();
         return `https://${appRoute}`;
     }
 
     public bind(serviceName?: string): ChildProcess {
-        let epinioCommand = serviceName === undefined ? `up --no-recreate` : `up --no-recreate ${serviceName}`;
+        let epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
         return this.execute(epinioCommand);
     }
 
     public unbind(serviceName?: string): ChildProcess {
-        let epinioCommand = serviceName === undefined ? `down` : `down ${serviceName}`;
+        let epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
         return this.execute(epinioCommand);
     }
 
-    public deleteService(serviceName?: string): string {
+    public deleteService(serviceName?: string): ChildProcess {
         let epinioCommand = `service delete ${serviceName}`;
-        const ret = this.executeSync(epinioCommand).toString();
-        vscode.window.showInformationMessage(`Delete app ${serviceName} successful`);
-        return ret;
+        return this.execute(epinioCommand);
     }
 
-    public push(applicationName?: string): string {
-        const epinioCommand = `app push --name ${applicationName} --path .`;
-        const ret = this.executeSync(epinioCommand).toString();
-        vscode.window.showInformationMessage(`Push app ${applicationName} successful`);
-        return ret;
+    public push(applicationName: string, appSourcePath: string): ChildProcess {
+        const epinioCommand = `app push --name ${applicationName} --path ${appSourcePath}`;
+        return this.execute(epinioCommand);
     }
 
     public open(applicationName: string): void {
@@ -87,10 +79,9 @@ export class EpinioExecutor extends CommandExecutor {
             if(variable && value) {
                 const epinioCommand = `app env set ${applicationName} ${variable} ${value}`;
                 this.executeSync(epinioCommand).toString();
-                vscode.window.showInformationMessage(`Set Environment variable for ${applicationName} successful`);
+                vscode.window.showInformationMessage(`Set Environment variable for ${applicationName} successful.`);
             } else {
-                vscode.window.showInformationMessage(`Something went wrong with Set Environment variable for ${applicationName}`);
-                return '';
+                vscode.window.showInformationMessage(`Something went wrong with Set Environment variable for ${applicationName}.`);
             }
         });
     }
@@ -110,7 +101,7 @@ export class EpinioExecutor extends CommandExecutor {
             const scale = Number(res);
             const epinioCommand = `app update ${applicationName} --instances=${scale}`;
             this.executeSync(epinioCommand).toString();
-            vscode.window.showInformationMessage(`Application ${applicationName} scaled to ${scale} instances`);
+            vscode.window.showInformationMessage(`Application ${applicationName} scaled to ${scale} instances.`);
         });
     }
 
@@ -120,14 +111,28 @@ export class EpinioExecutor extends CommandExecutor {
         const ret = this.executeSync(epinioCommand).toString();
         this._outputChannel.clear();
         this._outputChannel.append(ret);
+        this._outputChannel.show(true);
         return ret;
     }
 
-    public deleteApplication(applicationName?: string): string {
+    public getApplicationNamespace(applicationName: string): string {
+/*         const epinioCommand = `namespace list`;
+        const ret = this.executeSync(epinioCommand)
+                        .toString()
+                        .split(/[\r\n]+/g).filter((item) => item);
+        const namespaces = parseTableLines(ret) || [];
+        return namespaces?.find(namespace => namespace?.applications.split(',').find(app => app.trim() === applicationName))?.name || '';
+ */   
+        const epinioCommand = `app show ${applicationName}`;
+        const ret = this.executeSync(epinioCommand)
+                        .toString()
+                        .split(/[\r\n]+/g).filter((item) => item);
+        return getNamespace(ret);
+    }
+
+    public deleteApplication(applicationName?: string): ChildProcess {
         let epinioCommand = `app delete ${applicationName}`;
-        const ret = this.executeSync(epinioCommand).toString();
-        vscode.window.showInformationMessage(`Delete app ${applicationName} successful`);
-        return ret;
+        return this.execute(epinioCommand);
     }
 
     public executeSync(epinioCommand: string) {
@@ -139,6 +144,7 @@ export class EpinioExecutor extends CommandExecutor {
                 throw new EpinioCommandNotFound(err.message, err.output);
             else {
                 this._outputChannel.appendLine(err.message);
+                this._outputChannel.show(true);
                 throw new EpinioExecutorError(err.message, err.output);
             }
         }

@@ -2,7 +2,7 @@
   "name": "vscode-plugin-epinio",
   "displayName": "Epinio",
   "description": "VS Code plugin for epinio. epinio is an opinionated platform that runs on Kubernetes, that takes you from App to URL in one step.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "icon": "resources/epinio.png",
   "publisher": "SUSELLC",
   "license": "Apache-2.0",
@@ -26,6 +26,7 @@
     "url": ""
   },
   "activationEvents": [
+    "onCommand:epinio.application.explorer.add",
     "onCommand:epinio.application.explorer.refresh",
     "onCommand:epinio.application.push",
     "onCommand:epinio.application.open",
@@ -65,6 +66,16 @@
       ]
     },
     "commands": [
+      {
+        "command": "epinio.application.explorer.add",
+        "title": "Push application from source",
+        "icon": {
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
+        },
+        "description": "Pushes app and adds the application item to explorer",
+        "category": "Epinio"
+      },
       {
         "command": "epinio.application.explorer.refresh",
         "title": "Refresh explorer",
@@ -112,15 +123,15 @@
         "category": "Epinio"
       },
       {
-        "command": "epinio.service.up",
+        "command": "epinio.service.bind",
         "title": "View/Edit Environment variables",
-        "description": "Epinio service up",
+        "description": "Epinio service bind",
         "category": "Epinio"
       },
       {
-        "command": "epinio.service.down",
+        "command": "epinio.service.unbind",
         "title": "Bind Services",
-        "description": "Epinio service down",
+        "description": "Epinio service unbind",
         "category": "Epinio"
       },
       {
@@ -132,6 +143,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "epinio.application.explorer.add",
+          "when": "view == epinio.application",
+          "group": "navigation"
+        },
         {
           "command": "epinio.application.explorer.refresh",
           "when": "view == epinio.application",
@@ -170,12 +186,12 @@
           "group": "epinio:application@5"
         },
         {
-          "command": "epinio.service.up",
+          "command": "epinio.service.bind",
           "when": "view == epinio.service && viewItem == epinio:service",
           "group": "epinio:service@1"
         },
         {
-          "command": "epinio.service.down",
+          "command": "epinio.service.unbind",
           "when": "view == epinio.service && viewItem == epinio:service",
           "group": "epinio:service@2"
         },

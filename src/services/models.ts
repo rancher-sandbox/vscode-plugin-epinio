@@ -20,7 +20,7 @@ export class Service {
         return this.executor.unbind(this.name);
     }
 
-    public delete(): string {
+    public delete(): ChildProcess {
         return this.executor.deleteService(this.name);
     }
 
