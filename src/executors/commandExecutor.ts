@@ -56,5 +56,5 @@ export class CommandExecutor {
         let command = `${baseCommand} ${subCommand}`
         return this.execSync(command);
     }
-
+    
 }

@@ -2,7 +2,7 @@
   "name": "vscode-plugin-epinio",
   "displayName": "Epinio",
   "description": "VS Code plugin for epinio. epinio is an opinionated platform that runs on Kubernetes, that takes you from App to URL in one step.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "icon": "resources/epinio.png",
   "publisher": "SUSELLC",
   "license": "Apache-2.0",
@@ -18,12 +18,12 @@
     "deploy"
   ],
   "bugs": {
-    "url": "https://github.com/epinio/epinio/issues"
+    "url": "https://github.com/rancher-sandbox/vscode-plugin-epinio/issues"
   },
-  "homepage": "https://epinio.io/",
+  "homepage": "https://github.com/rancher-sandbox/vscode-plugin-epinio/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/rancher-sandbox/vscode-plugin-epinio"
   },
   "activationEvents": [
     "onCommand:epinio.application.explorer.add",
@@ -68,7 +68,7 @@
     "commands": [
       {
         "command": "epinio.application.explorer.add",
-        "title": "Push application from source",
+        "title": "Push App from source",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
@@ -78,66 +78,66 @@
       },
       {
         "command": "epinio.application.explorer.refresh",
-        "title": "Refresh explorer",
+        "title": "Refresh apps tree view explorer",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         },
-        "description": "Refresh Epinio explorer",
+        "description": "Refresh application tree view explorer",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.push",
         "title": "Push",
-        "description": "Epinio application push",
+        "description": "Push/Re-Push an application",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.open",
         "title": "Open",
-        "description": "Epinio application open in browser",
+        "description": "Open application in browser",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.env",
         "title": "Env",
-        "description": "Epinio application set env variable",
+        "description": "Set application environment variables",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.scale",
         "title": "Scale",
-        "description": "Scale Epinio application",
+        "description": "Set application instances",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.logs",
         "title": "Logs",
-        "description": "Epinio application open logs",
+        "description": "View application logs",
         "category": "Epinio"
       },
       {
         "command": "epinio.application.delete",
         "title": "Delete",
-        "description": "Epinio application delete",
+        "description": "Delete application",
         "category": "Epinio"
       },
       {
         "command": "epinio.service.bind",
-        "title": "View/Edit Environment variables",
-        "description": "Epinio service bind",
+        "title": "Bind",
+        "description": "Bind service to application",
         "category": "Epinio"
       },
       {
         "command": "epinio.service.unbind",
-        "title": "Bind Services",
-        "description": "Epinio service unbind",
+        "title": "Unbind",
+        "description": "Unbind service from application",
         "category": "Epinio"
       },
       {
         "command": "epinio.service.delete",
         "title": "Delete",
-        "description": "Epinio service delete",
+        "description": "Delete service",
         "category": "Epinio"
       }
     ],
@@ -206,14 +206,6 @@
       "type": "object",
       "title": "Epinio configuration",
       "properties": {
-        "epinio.applicationNames": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Override Epinio application name for each workspace root."
-        },
         "epinio.autoRefreshInterval": {
           "type": "integer",
           "default": 90000,
@@ -261,6 +253,7 @@
   },
   "dependencies": {
     "applicationinsights": "^2.1.8",
+    "promisify-child-process": "^4.1.1",
     "yaml-config-loader": "^2.1.0"
   }
 }

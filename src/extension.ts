@@ -1,6 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
-
+import { promisifyChildProcess } from "promisify-child-process";
 import { WorkspaceConfigurator } from "./configurators/workspaceConfigurator";
 import { EpinioProvider } from "./explorers/providers";
 import { ApplicationNode } from "./applications/views";
@@ -16,7 +16,6 @@ export function activate(context: vscode.ExtensionContext) {
     const applicationNames = configuration.get<string[]>("applicationNames") || [];
     const outputChannel = vscode.window.createOutputChannel('Epino');
 
-
     const provider = new EpinioProvider(context, files, shell, applicationNames, outputChannel);
     provider.setAutoRefresh(interval);
 
@@ -26,15 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
     disposables.push(outputChannel);
 
     const addExplorer = vscode.commands.registerCommand("epinio.application.explorer.add", () => {
-        vscode.window.showOpenDialog({
-            title: 'Epinio: Select Application source folder',
-            canSelectFiles: true,
-            canSelectFolders: true
-        }).then(res => {
-            if(res) {
-                provider.pushApplicationFromSource(res[0]?.path.split('/').pop() || 'default-name', res[0]?.fsPath);
-            }
-        });
+        provider.pushApplicationFromSource();
     });
 
     const refreshExplorer = vscode.commands.registerCommand("epinio.application.explorer.refresh", () => {
@@ -42,15 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const pushApplication = vscode.commands.registerCommand("epinio.application.push", (node: ApplicationNode) => {
-        vscode.window.showOpenDialog({
-            title: 'Epinio: Select Application source folder',
-            canSelectFiles: true,
-            canSelectFolders: true
-        }).then(res => {
-            if(res) {
-                provider.pushApplication(node, res[0]?.fsPath);
-            }
-        });
+        provider.pushApplication(node);
     });
 
     const openApplication = vscode.commands.registerCommand("epinio.application.open", (node: ApplicationNode) => {
@@ -69,27 +52,23 @@ export function activate(context: vscode.ExtensionContext) {
         provider.applicationLogs(node);
     });
 
-    const deleteApplication = vscode.commands.registerCommand("epinio.application.delete",  (node: ApplicationNode) => {
-        vscode.window.showInformationMessage(
+    const deleteApplication = vscode.commands.registerCommand("epinio.application.delete", (node: ApplicationNode) => {
+/*         vscode.window.showInformationMessage(
             `Are you sure you want to delete the app?`,
             { modal: true },
             ...['Yes', 'No'],
-        ).then(res =>  {
+        ).then( res =>  {
             if(res === 'Yes') {
-                provider.deleteApplication(node);
-/*                 vscode.window.withProgress({
+                vscode.window.withProgress({
                     location: vscode.ProgressLocation.Notification,
+                    title: "Deleting App...",
                     cancellable: false
-                }, async (progress, token) => {     
-                    progress.report({
-                        message: `Deleting Application...`,
-                    });               
-                    provider.deleteApplication(node).then(res => {
-                        vscode.window.showInformationMessage('Application deleted successfully!');
-                    })
-                }); */
+                }, async () => {
+                    return await promisifyChildProcess(provider.deleteApplication(node));
+                });
             } 
-        });
+        }); */
+        provider.deleteApplication(node);
     });
 
     const bindService = vscode.commands.registerCommand("epinio.service.bind", (node: ServiceNode) => {

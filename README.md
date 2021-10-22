@@ -10,13 +10,12 @@ For more information, Please visit https://epinio.io/
 
 After installing this extension, Please follow below steps.
 
-- Spin up a kubernetes cluster. You can use `Rancher Desktop` (https://rancherdesktop.io/) to quickly spin up one. 
-- Download `epinio` for your respective operating system and copy the binary to a folder on system path. 
-- From a terminal, run `epinio install`.
-- Run `epinio info` and `epinio config show` and make sure epinio is installed successfully.
+Step 1: Spin up a kubernetes cluster. You can use `Rancher Desktop` (https://rancherdesktop.io/) to quickly spin up one. 
+Step 2: Download `epinio` from https://github.com/epinio/epinio/releases for your respective operating system. 
+        Rename the file to `epinio` and copy the renamed binary to a folder on your system path. 
+Step 3: From a terminal, run `epinio install`. Run `epinio info`, `epinio config show` to ensure epinio is installed successfully.
 
 ## How to use this extension
 
 - Push an application from source using the `+` button in the `apps` tree view toolbar. 
-  The tree view also lists the applications pushed via CLI.
 - Right click on an application in the treeview to `Push`, `Open`, set `Env`, view `logs`, `Delete` etc.

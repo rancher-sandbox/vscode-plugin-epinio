@@ -1,5 +1,6 @@
 import { ChildProcess } from "child_process";
 import * as vscode from 'vscode';
+import { promisifyChildProcess } from "promisify-child-process";
 import { TreeItem, TreeDataProvider, EventEmitter, Event, workspace, window, ExtensionContext, Uri, TextDocument, Position } from "vscode";
 import { Application } from "../applications/models";
 import { ExplorerNode } from "../explorers/views";
@@ -107,18 +108,47 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
             return node.getTreeItem();
         }
 
-        public async pushApplication(node: ApplicationNode, appSourcePath: string): Promise<ChildProcess> {
-            const child_process =  node.application.push(appSourcePath);
-            child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} pushed successfully.`));
-            return child_process;
+        public pushApplication(node: ApplicationNode): void {
+            vscode.window.showOpenDialog({
+                title: 'Epinio: Select Application source folder',
+                canSelectFiles: true,
+                canSelectFolders: true
+            }).then(res => {
+                if(res) {
+                    vscode.window.withProgress({
+                        location: vscode.ProgressLocation.Notification,
+                        title: `Pushing App ${node.application.name} ...`,
+                        cancellable: false
+                    }, async () => {
+                        const child_process =  node.application.push(res[0]?.fsPath);
+                        child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} pushed successfully.`));            
+                        await promisifyChildProcess(child_process);
+                    });                
+                }
+            });
         }
 
-        public async pushApplicationFromSource(appName:string, appSourcePath: string): Promise<ChildProcess> {
-            const epinioExecutor = new EpinioExecutor(appName, __dirname, this._outputChannel);
-
-            const child_process =  epinioExecutor.push(appName, appSourcePath);
-            child_process.on('close', this.getRefreshCallable(this._root, `Application ${appName} pushed successfully.`));
-            return child_process;
+        public  pushApplicationFromSource(): void {
+            vscode.window.showOpenDialog({
+                title: 'Epinio: Select Application source folder',
+                canSelectFiles: true,
+                canSelectFolders: true
+            }).then(res => {
+                if(res) {
+                    const appName = res[0]?.path.split('/').pop() || 'default-name';
+                    const appSourcePath = res[0]?.fsPath;
+                    const epinioExecutor = new EpinioExecutor(appName , __dirname, this._outputChannel);
+                    vscode.window.withProgress({
+                        location: vscode.ProgressLocation.Notification,
+                        title: `Pushing App ${appName} ...`,
+                        cancellable: false
+                    }, async () => {
+                        const child_process =  epinioExecutor.push(appName , appSourcePath);
+                        child_process.on('close', this.getRefreshCallable(this._root, `Application ${appName} pushed successfully.`));                        
+                        await promisifyChildProcess(child_process);
+                    }); 
+                }
+            });
         }
 
         public async openApplication(node: ApplicationNode): Promise<void> {
@@ -134,13 +164,27 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
         }
 
         public async applicationLogs(node: ApplicationNode): Promise<string> {
-            return await node.application.getApplicationLogs();
+            return node.application.getApplicationLogs();
         }
     
-        public async deleteApplication(node: ApplicationNode): Promise<ChildProcess> {
-            const child_process =  node.application.delete();
-            child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} deleted successfully.`));
-            return child_process;
+        public deleteApplication(node: ApplicationNode): void {
+            vscode.window.showInformationMessage(
+                `Are you sure you want to delete the app?`,
+                { modal: true },
+                ...['Yes', 'No'],
+            ).then( res =>  {
+                if(res === 'Yes') {
+                    vscode.window.withProgress({
+                        location: vscode.ProgressLocation.Notification,
+                        title: `Deleting App ${node.application.name} ...`,
+                        cancellable: false
+                    }, async () => {
+                        const child_process =  node.application.delete();
+                        child_process.on('close', this.getRefreshCallable(node, `Application ${node.application.name} deleted successfully.`));            
+                        await promisifyChildProcess(child_process);
+                    });
+                } 
+            });
         }
     
         public async bindService(node: ServiceNode): Promise<ChildProcess> {
