@@ -17,7 +17,7 @@ export class EpinioExecutor extends CommandExecutor {
     }
 
     public getConnfigServices(): string {
-        let configServicesCommand = `service list`;
+        const configServicesCommand = `service list`;
         return this.executeSync(configServicesCommand).toString();
     }
 
@@ -39,17 +39,17 @@ export class EpinioExecutor extends CommandExecutor {
     }
 
     public bind(serviceName?: string): ChildProcess {
-        let epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
+        const epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
         return this.execute(epinioCommand);
     }
 
     public unbind(serviceName?: string): ChildProcess {
-        let epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
+        const epinioCommand = serviceName === undefined ? `` : ` ${serviceName}`;
         return this.execute(epinioCommand);
     }
 
     public deleteService(serviceName?: string): ChildProcess {
-        let epinioCommand = `service delete ${serviceName}`;
+        const epinioCommand = `service delete ${serviceName}`;
         return this.execute(epinioCommand);
     }
 
@@ -131,7 +131,7 @@ export class EpinioExecutor extends CommandExecutor {
     }
 
     public deleteApplication(applicationName?: string): ChildProcess {
-        let epinioCommand = `app delete ${applicationName}`;
+        const epinioCommand = `app delete ${applicationName}`;
         return this.execute(epinioCommand);
     }
 

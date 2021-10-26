@@ -16,9 +16,7 @@ export class ApplicationNode extends EpinioNode {
     async getChildren(): Promise<EpinioNode[]> {
         this.resetChildren();
 
-        let services;
-
-        services = this.application.getServices();
+        const services = this.application.getServices();
 
         this.children = services
             .map(service => new ServiceNode(this.context, service));

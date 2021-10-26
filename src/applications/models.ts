@@ -37,10 +37,10 @@ export class Application {
     }
 
     private _getServices(): Service[] {
-        let servicesString = this.epinioExecutor.getConnfigServices();
+        const servicesString = this.epinioExecutor.getConnfigServices();
         const objArray = parseTableLines(servicesString.split(/[\r\n]+/g).filter((item) => item));
-        let application = this;
-        let executor = this.epinioExecutor;
+        const application = this;
+        const executor = this.epinioExecutor;
         return objArray.map(item => new Service(application, item?.name.trim(), executor));
     }
 

@@ -70,7 +70,7 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
         }
 
         protected getRefreshCallable(node?: ExplorerNode, message?: string) {
-            let that = this;
+            const that = this;
             async function refresh() {
                 await that.refresh(node);
                 message ? vscode.window.showInformationMessage(message) : null;
@@ -188,19 +188,19 @@ export class EpinioProvider extends AutoRefreshTreeDataProvider<any> implements 
         }
     
         public async bindService(node: ServiceNode): Promise<ChildProcess> {
-            let child_process = node.service.bind();
+            const child_process = node.service.bind();
             child_process.on('close', this.getRefreshCallable(node));
             return child_process;
         }
     
         public async unbindService(node: ServiceNode): Promise<ChildProcess> {
-            let child_process = node.service.unbind();
+            const child_process = node.service.unbind();
             child_process.on('close', this.getRefreshCallable(node));
             return child_process;
         }
     
         public async deleteService(node: ServiceNode): Promise<ChildProcess> {
-            let child_process = node.service.delete();
+            const child_process = node.service.delete();
             child_process.on('close', this.getRefreshCallable(node));
             return child_process;
         }
