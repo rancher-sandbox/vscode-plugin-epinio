@@ -27,7 +27,7 @@ export class ApplicationNode extends EpinioNode {
         const item = new TreeItem(this.application.name, TreeItemCollapsibleState.Expanded);
         item.contextValue = ResourceType.Application;
         item.collapsibleState = TreeItemCollapsibleState.None;
-        item.description = `[ ${this.application.getApplicationNamespace()} ]`;
+        // item.description = `[ ${this.application.getApplicationNamespace()} ]`;
         const iconPath =  this.application.isApplicationPushedAndHealthy() 
                             ? this.context.asAbsolutePath('resources/app-pushed-healthy.png')
                             : this.context.asAbsolutePath('resources/app-not-pushed.png');

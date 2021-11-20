@@ -7,15 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased/Upcoming]
 
+- epinio api integration.
 - manifest file detect and push.
+- service and environment management.
 - Push from workspace, manifest or project folder right click.
-- On Push, add source folder to workspace.
-- Remember the source folder to avoid asking user every time the app is pushed.
-- Add epinio install/uninstall buttons.
+- Export manifest from a running app.
+- Specify a buildpack to use.
 - Bulk push, delete.
-- Open app in browser after push is successful.
+- Open app in browser automatically after push is successful. (Provide link in the pop up toast)
 - Reload app in browser tab on Re-Push.
-- E2E tests.
+- Auto push when file change. (refer to Kustomize).
+- E2E tests. Check on Gitpod.
+- Add epinio install/uninstall buttons.
+- telemetry.
+- Official marketplace.
+
+## [0.0.6]
+
+### Added
+- Added `Create`, `Delete` namespace features.
+- Added `Push from manifest` functionality.
+- On push, source folder is added to the Workspace
+- Remember the source folder for subsequent re-pushes
+- Added functionlity to `add`, `delete` epinio cluster connections via config files.
+- Switch between Cluster connections.
 
 ## [0.0.5] - 2021-10-22
 

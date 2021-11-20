@@ -47,14 +47,16 @@ export class CommandExecutor {
 
     public execute(subCommand: string): ChildProcess {
         const baseCommand = this.getBaseCommand();
-        const command = `${baseCommand} ${subCommand}`
-        return this.exec(command);
+        return baseCommand
+               ? this.exec(`${baseCommand} ${subCommand}`)
+               : null;
     }
 
     public executeSync(subCommand: string) {
         const baseCommand = this.getBaseCommand();
-        const command = `${baseCommand} ${subCommand}`
-        return this.execSync(command);
+        return baseCommand
+               ? this.execSync(`${baseCommand} ${subCommand}`)
+               : null;
     }
     
 }

@@ -3,17 +3,40 @@ import { CommandExecutor } from "./commandExecutor";
 import { EpinioCommandNotFound, EpinioExecutorError } from "./exceptions";
 import { parseTableLines, getNamespace } from "../utils/epinioOutputParser";
 import * as vscode from 'vscode';
+import { config } from "../config";
+import { LocalStorageService } from "../utils/localStorageService";
+import { promisifyChildProcess } from "promisify-child-process";
 
 export class EpinioExecutor extends CommandExecutor {
     private _outputChannel: vscode.OutputChannel;
+    private _storageManager: LocalStorageService;
 
-    constructor(name: string, cwd: string = '', outputChannel:vscode.OutputChannel) {
-        super(cwd, {EPINIO_APPLICATION_NAME: name});
+    constructor(name: string, cwd: string = '', outputChannel:vscode.OutputChannel, storageManager: LocalStorageService) {
+        super(cwd, {EPINIO_RESOURCE_NAME: name});
         this._outputChannel = outputChannel;
+        this._storageManager = storageManager;
     }
 
     getBaseCommand(): string {
-        return 'epinio ';
+        const configList = this._storageManager.getValue("configList") as any[] || [];
+        if(configList && configList.length > 0) {
+            return `epinio --config-file ${configList.find(config => config?.active)?.path}`;
+        } else {
+            vscode.window.showInformationMessage(
+                `No Active Epinio Cluster connection found! Please add a Cluster connection via Config file to start using Epinio`,
+                { modal: true },
+                ...['Ok'],
+           );
+           return null;
+        }
+    }
+
+    public setActiveConfig(config:string): void {
+
+    }
+
+    public deleteConfig(config:string): void {
+
     }
 
     public getConnfigServices(): string {
@@ -21,11 +44,31 @@ export class EpinioExecutor extends CommandExecutor {
         return this.executeSync(configServicesCommand).toString();
     }
 
+    public setNamespace(namespace: string): void {
+        const setNamespaceCommand = `target ${namespace}`;
+        this.executeSync(setNamespaceCommand);
+    }
+
     public getAppList(): any[] {
         const appListCommand = `app list`;
         const appList = this.executeSync(appListCommand).toString()
                                                         .split(/[\r\n]+/g).filter((item) => item);
         return parseTableLines(appList);
+    }
+
+    public getAppListByNamespace(namespace: string): any[] {
+        const appListCommand = `app list`;
+        const appList = this.executeSync(appListCommand)?.toString()
+                                                        ?.split(/[\r\n]+/g).filter((item) => item) || [];
+        const appListJSON = parseTableLines(appList);
+        return appListJSON.filter(app =>this.getApplicationNamespace(app.name)=== namespace);
+    }
+
+    public getNamespaceList(): any[] {
+        const nameSpaceListCommand = `namespace list`;
+        const nameSpaceList = this.executeSync(nameSpaceListCommand)?.toString()
+                                                        ?.split(/[\r\n]+/g).filter((item) => item) || [];
+        return parseTableLines(nameSpaceList);
     }
 
     public getAppUrl(appName:string): string {
@@ -55,6 +98,11 @@ export class EpinioExecutor extends CommandExecutor {
 
     public push(applicationName: string, appSourcePath: string): ChildProcess {
         const epinioCommand = `app push --name ${applicationName} --path ${appSourcePath}`;
+        return this.execute(epinioCommand);
+    }
+
+    public pushFromManifest(applicationName: string, appManifestPath: string): ChildProcess {
+        const epinioCommand = `app push ${appManifestPath}`;
         return this.execute(epinioCommand);
     }
 
@@ -105,7 +153,6 @@ export class EpinioExecutor extends CommandExecutor {
         });
     }
 
-
     public getApplicationLogs(applicationName?: string): string {
         const epinioCommand = `app logs ${applicationName}`;
         const ret = this.executeSync(epinioCommand).toString();
@@ -115,14 +162,7 @@ export class EpinioExecutor extends CommandExecutor {
         return ret;
     }
 
-    public getApplicationNamespace(applicationName: string): string {
-/*         const epinioCommand = `namespace list`;
-        const ret = this.executeSync(epinioCommand)
-                        .toString()
-                        .split(/[\r\n]+/g).filter((item) => item);
-        const namespaces = parseTableLines(ret) || [];
-        return namespaces?.find(namespace => namespace?.applications.split(',').find(app => app.trim() === applicationName))?.name || '';
- */   
+    public getApplicationNamespace(applicationName: string): string {   
         const epinioCommand = `app show ${applicationName}`;
         const ret = this.executeSync(epinioCommand)
                         .toString()
@@ -132,6 +172,16 @@ export class EpinioExecutor extends CommandExecutor {
 
     public deleteApplication(applicationName?: string): ChildProcess {
         const epinioCommand = `app delete ${applicationName}`;
+        return this.execute(epinioCommand);
+    }
+
+    public createNamespace(nameSpace?: string): ChildProcess {
+        const epinioCommand = `namespace create ${nameSpace}`;
+        return this.execute(epinioCommand);
+    }
+
+    public deleteNamespace(namespace?: string): ChildProcess {
+        const epinioCommand = `namespace delete ${namespace} --force`;
         return this.execute(epinioCommand);
     }
 

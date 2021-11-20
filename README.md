@@ -17,5 +17,6 @@ After installing this extension, Please follow below steps.
 
 ## How to use this extension
 
-- Push an application from source using the `+` button in the `apps` tree view toolbar. 
-- Right click on an application in the treeview to `Push`, `Open`, set `Env`, view `logs`, `Delete` etc.
+- Add `epinio` cluster connection using a config file using the `+` button in Cluster view toolbar.
+- Push an application from source or by manifest file using the right-click options of a namespace item. 
+- Right click on an application in the treeview to `RePush`, `Open`, set `Env`, view `logs`, `Delete` etc.

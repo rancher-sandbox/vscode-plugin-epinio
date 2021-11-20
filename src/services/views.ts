@@ -1,15 +1,9 @@
-import * as path from 'path';
-import { Command, TreeItem, TreeItemCollapsibleState, ExtensionContext } from "vscode";
+import { TreeItem, TreeItemCollapsibleState, ExtensionContext } from "vscode";
 import { ResourceType } from "../enums";
 import { Service } from "../services/models";
 import { EpinioNode } from "../epinio/views";
 
 export class ServiceNode extends EpinioNode {
-
-    // iconPath = {
-	// 	light: path.join(__filename, '..', '..', '..', 'resources', 'light'),
-	// 	dark: path.join(__filename, '..', '..', '..', 'resources', 'dark')
-	// };
 
     constructor(
         context: ExtensionContext,
@@ -20,7 +14,6 @@ export class ServiceNode extends EpinioNode {
 
     async getChildren(): Promise<EpinioNode[]> {
         this.resetChildren();
-
 
         return [];
     }

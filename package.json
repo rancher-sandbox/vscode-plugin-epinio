@@ -26,9 +26,15 @@
     "url": "https://github.com/rancher-sandbox/vscode-plugin-epinio"
   },
   "activationEvents": [
-    "onCommand:epinio.application.explorer.add",
+    "onCommand:epinio.config.explorer.add",
+    "onCommand:epinio.config.delete",
+    "onCommand:epinio.config.active",
+    "onCommand:epinio.namespace.pushAppFromSource",
+    "onCommand:epinio.namespace.pushAppFromManifest",
+    "onCommand:epinio.namespace.delete",
+    "onCommand:epinio.application.explorer.createNamespace",
     "onCommand:epinio.application.explorer.refresh",
-    "onCommand:epinio.application.push",
+    "onCommand:epinio.application.repush",
     "onCommand:epinio.application.open",
     "onCommand:epinio.application.env",
     "onCommand:epinio.application.scale",
@@ -38,21 +44,33 @@
     "onCommand:epinio.service.unbind",
     "onCommand:epinio.service.delete",
     "onView:epinio.application",
-    "onDebugInitialConfigurations"
+    "onView:epinio.service",
+    "onView:epinio.namespace",
+    "onView:epinio.config"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "views": {
       "epinioView": [
         {
+          "id": "epinio.namespace",
+          "name": "Namespaces",
+          "when": "config.epinio.namespace.showExplorer == true"
+        },
+        {
           "id": "epinio.application",
-          "name": "Apps",
+          "name": "Applications",
           "when": "config.epinio.application.showExplorer == true"
         },
         {
           "id": "epinio.service",
           "name": "Services",
           "when": "config.epinio.service.showExplorer == true"
+        },
+        {
+          "id": "epinio.config",
+          "name": "Clusters",
+          "when": "config.epinio.config.showExplorer == true"
         }
       ]
     },
@@ -67,13 +85,31 @@
     },
     "commands": [
       {
-        "command": "epinio.application.explorer.add",
-        "title": "Push App from source",
+        "command": "epinio.config.explorer.add",
+        "title": "Add Config",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
         },
-        "description": "Pushes app and adds the application item to explorer",
+        "description": "Add Config",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.config.active",
+        "title": "Set as Active Config",
+        "description": "Set as Active Config",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.config.delete",
+        "title": "Delete Config",
+        "description": "Delete Config",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.explorer.createNamespace",
+        "title": "Create Namespace",
+        "description": "Create Namespace",
         "category": "Epinio"
       },
       {
@@ -87,8 +123,26 @@
         "category": "Epinio"
       },
       {
-        "command": "epinio.application.push",
-        "title": "Push",
+        "command": "epinio.namespace.pushAppFromSource",
+        "title": "Push App from Source",
+        "description": "Create App from source",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.namespace.pushAppFromManifest",
+        "title": "Push App from Manifest",
+        "description": "Create App from manifest",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.namespace.delete",
+        "title": "Delete Namespace",
+        "description": "Delete Namespace",
+        "category": "Epinio"
+      },
+      {
+        "command": "epinio.application.repush",
+        "title": "RePush",
         "description": "Push/Re-Push an application",
         "category": "Epinio"
       },
@@ -144,9 +198,13 @@
     "menus": {
       "view/title": [
         {
-          "command": "epinio.application.explorer.add",
-          "when": "view == epinio.application",
+          "command": "epinio.config.explorer.add",
+          "when": "view == epinio.config",
           "group": "navigation"
+        },
+        {
+          "command": "epinio.application.explorer.createNamespace",
+          "when": "view == epinio.application"
         },
         {
           "command": "epinio.application.explorer.refresh",
@@ -156,7 +214,32 @@
       ],
       "view/item/context": [
         {
-          "command": "epinio.application.push",
+          "command": "epinio.config.active",
+          "when": "view == epinio.config && viewItem == epinio:config",
+          "group": "epinio:config@0"
+        },
+        {
+          "command": "epinio.config.delete",
+          "when": "view == epinio.config && viewItem == epinio:config",
+          "group": "epinio:config@1"
+        },
+        {
+          "command": "epinio.namespace.pushAppFromSource",
+          "when": "view == epinio.application && viewItem == epinio:namespace",
+          "group": "epinio:namespace@0"
+        },
+        {
+          "command": "epinio.namespace.pushAppFromManifest",
+          "when": "view == epinio.application && viewItem == epinio:namespace",
+          "group": "epinio:namespace@1"
+        },
+        {
+          "command": "epinio.namespace.delete",
+          "when": "view == epinio.application && viewItem == epinio:namespace",
+          "group": "epinio:namespace@2"
+        },
+        {
+          "command": "epinio.application.repush",
           "when": "view == epinio.application && viewItem == epinio:application",
           "group": "epinio:application@0"
         },
@@ -211,6 +294,11 @@
           "default": 90000,
           "description": "Epinio auto refresh interval."
         },
+        "epinio.config.showExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Epinio Config explorer."
+        },
         "epinio.application.showExplorer": {
           "type": "boolean",
           "default": true,
@@ -243,8 +331,10 @@
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
     "@vscode/test-electron": "^1.6.2",
+    "arkit": "^1.6.4",
     "eslint": "^7.32.0",
     "glob": "^7.1.7",
+    "js-yaml-loader": "^1.2.2",
     "mocha": "^9.1.1",
     "ts-loader": "^9.2.5",
     "typescript": "^4.4.3",
@@ -253,7 +343,9 @@
   },
   "dependencies": {
     "applicationinsights": "^2.1.8",
+    "axios": "^0.24.0",
     "promisify-child-process": "^4.1.1",
+    "yaml": "^1.10.2",
     "yaml-config-loader": "^2.1.0"
   }
 }
