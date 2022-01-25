@@ -10,8 +10,8 @@ export class Config {
     ) {
     }
 
-    public setActive(): void {
-        return this.epinioExecutor.setActiveConfig(this.name);
+    public setActiveConfig(): void {
+        return this.epinioExecutor.setActiveConfig();
     }
 
     public delete(): void {

@@ -19,3 +19,18 @@ export const emptyConfig: IEpinioConfig = {
     shell: "/bin/sh",
     files: ["epinio.yml"]
 }
+
+export interface IEpinioApp {
+    name: string;
+    sourcePath: string;
+}
+
+export interface IClusterConfig {
+    path: string;
+    active: boolean;
+}
+
+export interface IClusterInfo {
+    config: IClusterConfig,
+    apps?: IEpinioApp[]
+}

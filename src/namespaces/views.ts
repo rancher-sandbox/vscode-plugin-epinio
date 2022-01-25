@@ -16,7 +16,7 @@ export class NamespaceNode extends EpinioNode {
     async getChildren(): Promise<EpinioNode[]> {
         this.resetChildren();
 
-        const applications = this.namespace.getApplications();
+        const applications = await this.namespace.getApplications();
 
         this.children = applications
             .map(application => new ApplicationNode(this.context, application));

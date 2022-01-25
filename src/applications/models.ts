@@ -19,7 +19,7 @@ export class Application {
 
     public isApplicationPushedAndHealthy(): boolean {
         this.epinioExecutor.setNamespace(this.namespace.name);
-        return this.epinioExecutor.getAppList().find(item => item.name === this.name && isApplicationHealthy(item))
+        return this.epinioExecutor.getAppListByNamespace(this.namespace.name).find(item => item.name === this.name && isApplicationHealthy(item))
                 ? true
                 : false;
     }

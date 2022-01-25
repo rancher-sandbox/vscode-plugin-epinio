@@ -12,10 +12,12 @@ import { Namespace } from "../namespaces/models";
 import { NamespaceNode, NamespacesNode } from "../namespaces/views";
 import { LocalStorageService } from '../utils/localStorageService';
 import { ConfigNode, ConfigsNode } from "../configs/views";
-import { config } from "process";
+import { IClusterInfo } from "../configurators/models";
+import { Application } from "../applications/models";
+import { RequestData } from "applicationinsights/out/Declarations/Contracts";
+import { resolve } from "path";
 
 export class AutoRefreshTreeDataProvider<T> {
-
     private autoRefreshEnabled: boolean;
     private debounceTimer: NodeJS.Timer;
 
@@ -88,10 +90,10 @@ export class EpinioConfigProvider extends AutoRefreshTreeDataProvider<any> imple
         }
 
         private getConfigNodes() : Config[] {
-            const configList = this._storageManager.getValue("configList") as any[];
-            return configList && configList.length > 0    
-            ? configList.map(config => new Config(config?.path, config?.active, this._epinioExecutor))
-            : []
+            const clusterInfo = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+            return clusterInfo && clusterInfo.length > 0    
+                    ? clusterInfo.map(info => new Config(info?.config.path, info?.config.active, this._epinioExecutor))
+                    : [];
         }
 
         public  addConfig(): void {
@@ -101,13 +103,15 @@ export class EpinioConfigProvider extends AutoRefreshTreeDataProvider<any> imple
                 canSelectFolders: false
             }).then(res => {
                 if(res) {
-                    const configList = this._storageManager.getValue("configList") as any[] || [];
-                    if(!configList.find(config => config?.path === res[0]?.fsPath)) {
-                        const newConfigList = [
-                            ...configList,
-                            configList.length === 0 ? {path: res[0]?.fsPath, active: true} : {path: res[0]?.fsPath, active: false}
+                    const clusterInfo = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+                    if(!clusterInfo.find(info => info?.config.path === res[0]?.fsPath)) {
+                        const configNode = new Config(res[0]?.fsPath, clusterInfo.length === 0, this._epinioExecutor);
+                        const newClusterInfo:IClusterInfo[] = [
+                            ...clusterInfo,
+                            clusterInfo.length === 0 ? {config: {path: res[0]?.fsPath, active: true}} : {config: {path: res[0]?.fsPath, active: false}}
                         ];
-                        this._storageManager.setValue("configList", newConfigList);
+                        this._storageManager.setValue("epinio", newClusterInfo);
+                        configNode.setActiveConfig();
                         this._onDidChangeTreeData.fire();
                     }                    
                 }
@@ -115,41 +119,42 @@ export class EpinioConfigProvider extends AutoRefreshTreeDataProvider<any> imple
         }
 
         public async setActiveConfigNode(node: ConfigNode): Promise<void> {
-            const configList = this._storageManager.getValue("configList") as any[] || [];
-            if(!configList.find(config => config?.path === node.config.name).active) {
-                const newConfigList = configList.map(config => {
+            const clusterInfo = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+            if(!clusterInfo.find(info => info?.config.path === node.config.name)?.config.active) {
+                const newClusterInfo = clusterInfo.map(info => {
                     return {
-                        ...config,
-                        active: config?.path === node.config.name ? true : false
+                        ...info,
+                        config: {...info.config, active: info?.config.path === node.config.name ? true : false }
                     }
                 });
-                this._storageManager.setValue("configList", newConfigList);
+                this._storageManager.setValue("epinio", newClusterInfo);
                 this._onDidChangeTreeData.fire();
-                return node.config.setActive();                         
+                return node.config.setActiveConfig();                         
             }
+
         }
 
         public deleteConfig(node: ConfigNode): void {
-            const configList = this._storageManager.getValue("configList") as any[] || [];
-            // if(!configList.find(config => config?.path === node.config.name).active) {
+            const clusterInfo = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+            if(!clusterInfo.find(info => info?.config.path === node.config.name)?.config.active) {
                 vscode.window.showInformationMessage(
-                    `Are you sure you want to delete the Config?`,
+                    `Are you sure you want to delete the Cluster Connection Config?`,
                     { modal: true },
                     ...['Yes', 'No'],
                 ).then( res =>  {
                     if(res === 'Yes') {
-                        const newConfigList = [...configList.filter(config => config?.path !== node.config.name)];
-                        this._storageManager.setValue("configList", newConfigList);
+                        const newConfigList = [...clusterInfo.filter(info => info?.config.path !== node.config.name)];
+                        this._storageManager.setValue("epinio", newConfigList);
                         this._onDidChangeTreeData.fire();
                     }
                 });
-/*             } else {
+            } else {
                 vscode.window.showInformationMessage(
-                    `Active Config cannot be deleted!`,
+                    `Active Cluster Connection Config cannot be deleted!`,
                     { modal: true },
                     ...['Ok'],
                 );
-            } */
+            }
         }
 
 }
@@ -188,7 +193,18 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                 await that.refresh(node);
                 vscode.window.showInformationMessage(`Application ${appName} pushed successfully.`);
                 workspace.updateWorkspaceFolders(workspace.workspaceFolders ? workspace.workspaceFolders.length : 0, null, { uri });
-                that._storageManager.setValue(appName, appSourcePath);    
+                const clusterInfo = that._storageManager.getValue("epinio") as IClusterInfo[] || [];
+                const activeClusterInfo = clusterInfo.find(info => info?.config.active);
+                const updatedClusterInfo:IClusterInfo = {
+                    ...activeClusterInfo,
+                    apps: [...activeClusterInfo.apps || [], {name: appName, sourcePath: appSourcePath}]
+                };
+                const newClusterInfo:IClusterInfo[] = clusterInfo.map(info => {
+                    return info.config.active
+                           ? updatedClusterInfo
+                           : info;
+                });
+                that._storageManager.setValue("epinio", newClusterInfo);
             }
             return refresh;
         }
@@ -205,24 +221,51 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                 folderIndex >= 0
                 ? workspace.updateWorkspaceFolders(folderIndex, 1)
                 : null; */ //this lines of code is to delete source folder from workspace.
-                that._storageManager.setValue(appName, undefined); 
+                const clusterInfo = that._storageManager.getValue("epinio") as IClusterInfo[] || [];
+                const activeClusterInfo = clusterInfo.find(info => info?.config.active);
+                const updatedClusterInfo:IClusterInfo = {
+                    ...activeClusterInfo,
+                    apps: [...activeClusterInfo.apps.filter(item => item.name !== appName)]
+                };
+                const newClusterInfo:IClusterInfo[] = clusterInfo.map(info => {
+                    return info.config.active
+                           ? updatedClusterInfo
+                           : info;
+                });
+                that._storageManager.setValue("epinio", newClusterInfo);
             }
             return refresh;
         }
 
         async getChildren(node?:ExplorerNode): Promise<ExplorerNode[]> {
             if (node === undefined) {
-                this._root = new NamespacesNode(this.context, this.getNamespaceNodes());      
+                await this._epinioExecutor._getNamespaceList().then((res) => {
+                    const namespaces = res.data.map(namespace => {
+                        return new Namespace(namespace.name, this._epinioExecutor);
+                    });
+                    this._root = new NamespacesNode(this.context, namespaces);      
+                }).catch(err => {
+                    window.showErrorMessage("Epinio Error: " + err.message);
+                    this._root = new NamespacesNode(this.context, []);
+                });
                 node = this._root;
             }
                 
             return await node?.getChildren() || [];
         }
 
-        private getNamespaceNodes() : Namespace[] {
+/*         async out_getChildren(node?:ExplorerNode): Promise<ExplorerNode[]> {
+            if (node === undefined) {
+                this._root = new NamespacesNode(this.context, this.getNamespaceNodes());      
+                node = this._root;
+            }
+                
+            return await node?.getChildren() || [];
+        } */
+
+/*         private getNamespaceNodes() : Namespace[] {
             try {
                 const epinioNamespaceListCmdOutput = this._epinioExecutor.getNamespaceList();
-
                 return epinioNamespaceListCmdOutput && epinioNamespaceListCmdOutput.length > 0 
                                      ? epinioNamespaceListCmdOutput.map(namespace => {
                                             return new Namespace(namespace.name, this._epinioExecutor);
@@ -233,14 +276,16 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                 window.showErrorMessage("Epinio Error: " + err.message);
                 return  [];
             }
-        }
+        } */
      
         async getTreeItem(node: ExplorerNode): Promise<TreeItem> {
             return node.getTreeItem();
         }
 
         public rePushApplication(node: ApplicationNode): void {
-            const appSourceOrManifestPath = this._storageManager.getValue(node.application.name) as string;
+            const clusterInfo = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+            const activeClusterInfo = clusterInfo.find(info => info?.config.active);
+            const appSourceOrManifestPath = activeClusterInfo.apps.find(item => item.name === node.application.name)?.sourcePath;
             if(appSourceOrManifestPath) {
                 const appName = node.application.name;
                 vscode.window.withProgress({
@@ -268,8 +313,8 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                             title: `Pushing App ${appName} ...`,
                             cancellable: false
                         }, async () => {
-                            this._epinioExecutor.setNamespace(node.application.namespace.name);
-                            const child_process =  this._epinioExecutor.push(appName , appSourcePath);
+                            const app = new Application(node.application.namespace, appName, this._epinioExecutor);
+                            const child_process =  app.push(appSourcePath);;
                             child_process.on('close', this.onPushSuccess(appName, appSourcePath, this._root));                        
                             await promisifyChildProcess(child_process);
                         }); 
@@ -292,8 +337,8 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                         title: `Pushing App ${appName} ...`,
                         cancellable: false
                     }, async () => {
-                        this._epinioExecutor.setNamespace(node.namespace.name);
-                        const child_process =  this._epinioExecutor.push(appName , appSourcePath);
+                        const app = new Application(node.namespace, appName, this._epinioExecutor);
+                        const child_process =  app.push(appSourcePath);
                         child_process.on('close', this.onPushSuccess(appName, appSourcePath, this._root));                        
                         await promisifyChildProcess(child_process);
                     }); 
@@ -315,7 +360,8 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
                         title: `Pushing App ${appName} ...`,
                         cancellable: false
                     }, async () => {
-                        const child_process =  this._epinioExecutor.pushFromManifest(appName , appManifestPath);
+                        const app = new Application(node.namespace, appName, this._epinioExecutor);
+                        const child_process =  app.pushFromManifest(appManifestPath);
                         child_process.on('close', this.onPushSuccess(appName, appManifestPath, this._root));                        
                         await promisifyChildProcess(child_process);
                     }); 
@@ -367,16 +413,18 @@ export class EpinioApplicationProvider extends AutoRefreshTreeDataProvider<any> 
         }
 
         public async createNamespace(): Promise<void> {
-            this.getNamespaceNameInput().then(res => {
-                if(res) {
+            this.getNamespaceNameInput().then(ns => {
+                if(ns) {
                     vscode.window.withProgress({
                         location: vscode.ProgressLocation.Notification,
-                        title: `Creating Namespace ${res} ...`,
+                        title: `Creating Namespace ${ns} ...`,
                         cancellable: false
                     }, async () => {
-                        const child_process =  this._epinioExecutor.createNamespace(res);
-                        child_process.on('close', this.getRefreshCallable(this._root, `Namespace ${res} created successfully.`));                        
-                        await promisifyChildProcess(child_process);
+                        const namespace = new Namespace(ns, this._epinioExecutor);
+                        await namespace.create().then(res => {
+                            vscode.window.showInformationMessage(`Namespace ${ns} created successfully.`)
+                            this._onDidChangeTreeData.fire();
+                        });
                     }); 
                 }
             });

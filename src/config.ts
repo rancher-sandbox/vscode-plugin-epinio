@@ -1,28 +1,27 @@
-import yaml from 'yaml';
+import yaml from 'js-yaml';
 import * as fs from 'fs';
-import * as path from 'path';
-import { WorkspaceConfigurator } from "./configurators/workspaceConfigurator";
 
-export class Config {
+export class ClusterConnectionConfig {
 
-    'api' = 'https://epinio.172.21.239.146.omg.howdoi.website';
-    'certs' = '';
-    'colors' = 'true';
-    'namespace' = 'workspace';
-    'org' = 'workspace';
-    'pass' = '6a3307208f9ba266';
-    'user' = 'c6e8e1880afc2cc2';
+    public api: string;
+    public certs: string;
+    public colors: string;
+    public namespace: string;
+    public org: string;
+    public pass: string;
+    public user: string;
 
-    constructor(properties) {
-        this.addAll(properties);
+    constructor(configFile: string) {
+        this.addAll(configFile);
     }
 
     public get(key: string): any {
         return this[key];
     }
 
-    public addAll(properties): any {
-        properties = objectToArray(properties);
+    public addAll(configFile: string): any {
+        const yamlConfig = yaml.load(fs.readFileSync(configFile, 'utf8'));
+        const properties = objectToArray(yamlConfig);
         for (const property in properties) {
             if (properties.hasOwnProperty(property)) {
                 this[property] = properties[property];
@@ -54,12 +53,6 @@ export class Config {
     }
 }
 
-const yamlConfigPath = 'C:\\.config\\epinio\\config.yaml';
-const yamlConfig = yaml.parseDocument(fs.readFileSync(yamlConfigPath, 'utf8'));
-const config = new Config({... objectToArray(yamlConfig)});
-
-export { config };
-
 function objectToArray(source, currentKey?, target?): any {
     target = target || {};
     for (const property in source) {
@@ -75,20 +68,4 @@ function objectToArray(source, currentKey?, target?): any {
         }
     }
     return target;
-}
-
-function ipAddress(): any {
-    const interfaces = require('os').networkInterfaces();
-    for (const dev in interfaces) {
-        if (interfaces.hasOwnProperty(dev)) {
-            const iface = interfaces[dev];
-            for (const alias of iface) {
-                if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                    return alias.address;
-                }
-            }
-        }
-    }
-
-    return null;
 }

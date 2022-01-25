@@ -15,15 +15,20 @@ export class Namespace {
         this._applications = [];
     }
 
-    public getApplications(force: boolean = false): Application[] {
+    public async getApplications(force: boolean = false): Promise<Application[]> {
         if (this._applications === undefined || this._applications.length === 0 || force) {
-            this.refreshApplications();
+            await this.refreshApplications();
         }
         return this._applications || [];
     }
 
-    public refreshApplications(): void {
-        this._applications = this._getApplications();
+    public async refreshApplications() {
+        this.epinioExecutor.setNamespace(this.name);
+        const namespace = this;
+        const executor = this.epinioExecutor;
+        await this.epinioExecutor._getAppListByNamespace(this.name).then(res => {
+            this._applications = res.data.map(item => new Application(namespace, item?.meta.name, executor));
+        });
     }
 
     private _getApplications(): Application[] {
@@ -36,6 +41,11 @@ export class Namespace {
 
     public delete(): ChildProcess {
         return this.epinioExecutor.deleteNamespace(this.name);
+    }
+
+    public async create(): Promise<any> {
+        const ret =  await this.epinioExecutor._createNamespace(this.name);
+        return ret;
     }
 
 }

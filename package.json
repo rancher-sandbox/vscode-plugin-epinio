@@ -86,12 +86,12 @@
     "commands": [
       {
         "command": "epinio.config.explorer.add",
-        "title": "Add Config",
+        "title": "Add Cluster Config",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
         },
-        "description": "Add Config",
+        "description": "Add Cluster Config",
         "category": "Epinio"
       },
       {
@@ -321,9 +321,11 @@
     "watch-tests": "tsc -p -w . --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "generate-api-client": "openapi-generator-cli generate -g typescript -i ./resources/swagger.yaml -o ./src/api"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.4.18",
     "@types/glob": "^7.1.4",
     "@types/mocha": "^9.0.0",
     "@types/node": "14.x",
@@ -344,8 +346,8 @@
   "dependencies": {
     "applicationinsights": "^2.1.8",
     "axios": "^0.24.0",
+    "js-yaml": "^4.1.0",
     "promisify-child-process": "^4.1.1",
-    "yaml": "^1.10.2",
-    "yaml-config-loader": "^2.1.0"
+    "request": "^2.88.2"
   }
 }

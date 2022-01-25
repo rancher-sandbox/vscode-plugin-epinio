@@ -3,24 +3,36 @@ import { CommandExecutor } from "./commandExecutor";
 import { EpinioCommandNotFound, EpinioExecutorError } from "./exceptions";
 import { parseTableLines, getNamespace } from "../utils/epinioOutputParser";
 import * as vscode from 'vscode';
-import { config } from "../config";
 import { LocalStorageService } from "../utils/localStorageService";
 import { promisifyChildProcess } from "promisify-child-process";
+import { IClusterInfo } from "../configurators/models";
+import { EpinioApiExecutor } from "./epinioApiExecutor";
 
 export class EpinioExecutor extends CommandExecutor {
     private _outputChannel: vscode.OutputChannel;
     private _storageManager: LocalStorageService;
+    private _activeConfigFile: string;
+    private _epinioAPIExecutor: EpinioApiExecutor;
 
     constructor(name: string, cwd: string = '', outputChannel:vscode.OutputChannel, storageManager: LocalStorageService) {
         super(cwd, {EPINIO_RESOURCE_NAME: name});
         this._outputChannel = outputChannel;
         this._storageManager = storageManager;
+        const configs  = this._storageManager.getValue("epinio") as IClusterInfo[] || [];
+        this._activeConfigFile = configs.find(info => info?.config.active)?.config.path;
+        this._epinioAPIExecutor = this._activeConfigFile && this._activeConfigFile !== ''
+                                  ? new EpinioApiExecutor(this._activeConfigFile)
+                                  : null;
+    }
+
+    getBaseApiEndpoint(): string {
+        // this._epinioAPIExecutor.setConfig(this._activeConfigFile);
+        return 'namespaces';
     }
 
     getBaseCommand(): string {
-        const configList = this._storageManager.getValue("configList") as any[] || [];
-        if(configList && configList.length > 0) {
-            return `epinio --config-file ${configList.find(config => config?.active)?.path}`;
+        if(this._activeConfigFile && this._activeConfigFile !== '') {
+            return `epinio --config-file ${this._activeConfigFile}`;
         } else {
             vscode.window.showInformationMessage(
                 `No Active Epinio Cluster connection found! Please add a Cluster connection via Config file to start using Epinio`,
@@ -31,8 +43,9 @@ export class EpinioExecutor extends CommandExecutor {
         }
     }
 
-    public setActiveConfig(config:string): void {
-
+    public setActiveConfig(): void { // not required with apis??
+        const configUpdateCommand = `config update`;
+        this.executeSync(configUpdateCommand);
     }
 
     public deleteConfig(config:string): void {
@@ -44,16 +57,15 @@ export class EpinioExecutor extends CommandExecutor {
         return this.executeSync(configServicesCommand).toString();
     }
 
-    public setNamespace(namespace: string): void {
+    public setNamespace(namespace: string): void { // not required with apis??
         const setNamespaceCommand = `target ${namespace}`;
         this.executeSync(setNamespaceCommand);
     }
 
-    public getAppList(): any[] {
-        const appListCommand = `app list`;
-        const appList = this.executeSync(appListCommand).toString()
-                                                        .split(/[\r\n]+/g).filter((item) => item);
-        return parseTableLines(appList);
+    public async _getAppListByNamespace(namespace: string) {
+        const apiEndPoint = `${this.getBaseApiEndpoint()}/${namespace}/applications`;
+        const ret = await this._epinioAPIExecutor.get(this._activeConfigFile, apiEndPoint);
+        return ret;
     }
 
     public getAppListByNamespace(namespace: string): any[] {
@@ -64,7 +76,13 @@ export class EpinioExecutor extends CommandExecutor {
         return appListJSON.filter(app =>this.getApplicationNamespace(app.name)=== namespace);
     }
 
+    public async _getNamespaceList() {
+        const apiEndPoint = `${this.getBaseApiEndpoint()}`;
+        return await this._epinioAPIExecutor.get(this._activeConfigFile, apiEndPoint);
+    }
+
     public getNamespaceList(): any[] {
+        const junk = this._getNamespaceList();
         const nameSpaceListCommand = `namespace list`;
         const nameSpaceList = this.executeSync(nameSpaceListCommand)?.toString()
                                                         ?.split(/[\r\n]+/g).filter((item) => item) || [];
@@ -173,6 +191,15 @@ export class EpinioExecutor extends CommandExecutor {
     public deleteApplication(applicationName?: string): ChildProcess {
         const epinioCommand = `app delete ${applicationName}`;
         return this.execute(epinioCommand);
+    }
+
+    public async _createNamespace(nameSpace?: string) : Promise<any> {
+        const apiEndPoint = `${this.getBaseApiEndpoint()}`;
+        const data = JSON.stringify({
+            "name": nameSpace
+        });
+        const ret = await this._epinioAPIExecutor.post(this._activeConfigFile, apiEndPoint, data);
+        return ret;
     }
 
     public createNamespace(nameSpace?: string): ChildProcess {
